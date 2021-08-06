@@ -36,19 +36,20 @@ def summary(entries, avg = False):
     if avg:
         print('Avarage rating: ', '%.2f / 10' % (sum(e.rating for e in entries) / len(entries)))
 
-def on_with_rating(args):
-    pass
+def on_with_rating(args, entries):
+    entries = [entry for entry in entries if entry.rating in args.rating]
+    print_table(entries)
+    summary(entries)
 
-def on_with_title(args):
+def on_with_title(args, entries):
     needle = args.title.lower()
-    entries = [entry for entry in load_ratings(args.path) if needle in entry.title.lower()]
+    entries = [entry for entry in entries if needle in entry.title.lower()]
 
     if not args.rating_date:
         entries.sort(key=lambda entry: entry.date)
 
     print_table(entries)
     summary(entries, avg=True)
-
 
 def on_ratings(args):
     pass
@@ -68,7 +69,7 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers()
 
     with_rating = subparsers.add_parser('with-rating', help='Shows all entries with given rating', aliases=['wr'])
-    with_rating.add_argument('rating', type=int, help='Rating to search for')
+    with_rating.add_argument('rating', type=int, nargs='+', help='Rating to search for')
     with_rating.set_defaults(handler=on_with_rating)
 
     with_title = subparsers.add_parser('with-title', help='Shows all entries with given title', aliases=['wt'])
@@ -84,4 +85,4 @@ if __name__ == '__main__':
         exit()
 
     args = parser.parse_args()
-    args.handler(args)
+    args.handler(args, load_ratings(args.path))

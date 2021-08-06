@@ -40,9 +40,6 @@ def print_help():
     print(f"""
 USAGE
     {filename} [searched phrase]
-    {filename} [searched phrase] [filename]
-
-    If filename is not passed, it defaults to "ratings.csv"
 
 DESCRIPTION
     This script searches for matching titles to given phrase

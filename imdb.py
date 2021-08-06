@@ -5,6 +5,7 @@ from itertools import count
 import argparse
 import csv
 import sys
+import textwrap
 
 Entry = namedtuple('Entry', 'title rating date')
 
@@ -21,32 +22,62 @@ def load_ratings(filename, encoding='iso-8859-1'):
                 date = datetime.strptime(entry[indexes['Release Date']], '%Y-%m-%d'))
                 for entry in entries[1:]]
 
+def print_table(rows):
+    max_title_length = max(len(e.title) for e in rows)
+
+    for title, rating, _ in rows:
+        spacing = " " * (max_title_length - len(title) + 2)
+        print(title, spacing, rating, sep='')
+
+def summary(entries, avg = False):
+    print('\n================ SUMMARY ================')
+    print('Found: ', len(entries))
+
+    if avg:
+        print('Avarage rating: ', '%.2f / 10' % (sum(e.rating for e in entries) / len(entries)))
+
 def on_with_rating(args):
     pass
 
 def on_with_title(args):
-    pass
+    needle = args.title.lower()
+    entries = [entry for entry in load_ratings(args.path) if needle in entry.title.lower()]
+
+    if not args.rating_date:
+        entries.sort(key=lambda entry: entry.date)
+
+    print_table(entries)
+    summary(entries, avg=True)
+
 
 def on_ratings(args):
     pass
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog='imdb')
+    parser = argparse.ArgumentParser(
+            prog='imdb',
+            description=textwrap.dedent("""
+                This is a collection of useful tools for browsing user ratings
+                data collected by IMDB. To download source data, login to your IMDB account
+                and in 'Your ratings' click on Export link.
+                Exported CSV file is necessary for this application.
+            """).strip())
 
     parser.add_argument('-p', '--path', help='Path to a ratings file (default: ratings.csv)', default='ratings.csv')
 
     subparsers = parser.add_subparsers()
 
-    parser_with_rating = subparsers.add_parser('with-rating', help='Shows all entries with given rating', aliases=['wr'])
-    parser_with_rating.add_argument('rating', type=int, help='Rating to search for')
-    parser_with_rating.set_defaults(handler=on_with_rating)
+    with_rating = subparsers.add_parser('with-rating', help='Shows all entries with given rating', aliases=['wr'])
+    with_rating.add_argument('rating', type=int, help='Rating to search for')
+    with_rating.set_defaults(handler=on_with_rating)
 
-    parser_find = subparsers.add_parser('with-title', help='Shows all entries with given title', aliases=['wt'])
-    parser_find.add_argument('title', help='Phrase to look for in titles')
-    parser_find.set_defaults(handler=on_with_title)
+    with_title = subparsers.add_parser('with-title', help='Shows all entries with given title', aliases=['wt'])
+    with_title.add_argument('title', help='Phrase to look for in titles')
+    with_title.add_argument('-r', '--rating-date', help='Sorts output by rating date', action='store_true')
+    with_title.set_defaults(handler=on_with_title)
 
-    parser_ratings = subparsers.add_parser('ratings', help='Shows statistics about ratings', aliases='r')
-    parser_ratings.set_defaults(handler=on_ratings)
+    ratings = subparsers.add_parser('ratings', help='Shows statistics about ratings', aliases='r')
+    ratings.set_defaults(handler=on_ratings)
 
     if len(sys.argv) == 1:
         parser.print_help()

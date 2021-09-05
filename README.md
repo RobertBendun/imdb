@@ -10,3 +10,12 @@ To get your ratings data go to 'Your Ratings' and export.
 | `imdb.py with-rating <rating>` | Shows all entries with given rating |
 | `imdb.py with-title <phrase>` | Shows all entries having `phrase` in the title |
 | `imdb.py ratings` | Shows statistics about ratings (and can also plot them) |
+
+### Example plot
+```
+$ imdb.py ratings -o example.png
+```
+![picture of example plot](./example.png)
+
+Used color scheme is [Gruvbox](https://github.com/morhetz/gruvbox).
+

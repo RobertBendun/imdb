@@ -37,6 +37,12 @@ def load_ratings(filename, encoding='iso-8859-1'):
                 date = datetime.strptime(entry[indexes['Release Date']], '%Y-%m-%d'))
                 for entry in entries[1:]]
 
+def ratings_occurance(entries):
+    ratings = [0] * 10
+    for entry in entries:
+        ratings[entry.rating - 1] += 1
+    return ratings
+
 def print_table(rows):
     max_title_length = max(len(e.title) for e in rows)
 
@@ -68,18 +74,15 @@ def on_with_title(args, entries):
     summary(entries, avg=True)
 
 def on_ratings(args, entries):
-    ratings = [0] * 10
-    for entry in entries:
-        ratings[entry.rating - 1] += 1
+    ratings     = ratings_occurance(entries)
+    ratings_sum = sum(ratings)
+    ratings     = zip(count(1), ratings)
+    ratings     = sorted(ratings, key = lambda x: x[1], reverse = True)
+    for i, r in ratings:
+        print(f'{i}:\t{r}\t%.1f%%' % (r / ratings_sum * 100))
 
-    if not args.graph and not args.output:
-        ratings_sum = sum(ratings)
-        ratings     = zip(count(1), ratings)
-        ratings     = sorted(ratings, key = lambda x: x[1], reverse = True)
-        for i, r in ratings_by_popularity:
-            print(f'{i}:\t{r}\t%.1f%%' % (r / ratings_sum * 100))
-        return
-
+def on_plot(args, entries):
+    ratings = ratings_occurance(entries)
 
     plot.rcParams['axes.edgecolor']  = Colors.Foreground_Dimmer
     plot.rcParams['axes.labelcolor'] = Colors.Foreground
@@ -108,6 +111,7 @@ def on_ratings(args, entries):
     plot.xticks(range(1, 11))
     plot.ylabel('Rating count')
 
+
     height = 5 * (max(ratings) // 5 + 1)
     plot.yticks(range(0, height + 5, 5))
     plot.ylim(ymin=0, ymax=height)
@@ -118,7 +122,7 @@ def on_ratings(args, entries):
         plot.show()
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(
             prog='imdb',
             description=textwrap.dedent("""
@@ -142,8 +146,10 @@ if __name__ == '__main__':
     with_title.set_defaults(handler=on_with_title)
 
     ratings = subparsers.add_parser('ratings', help='Shows statistics about ratings', aliases='r')
-    ratings.add_argument('-g', '--graph', help='Opens window with visual representation of data', action='store_true')
-    ratings.add_argument('-o', '--output', type=str, help='Same as -g, but prints to file instead of opening window')
+
+    plot = subparsers.add_parser('plot', help='Plots ratings occurance', aliases='p')
+    plot.add_argument('-o', '--output', type=str, help='Write plot to a file insetad of opening window')
+    plot.set_defaults(handler=on_plot)
 
     ratings.set_defaults(handler=on_ratings)
 
@@ -153,3 +159,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     args.handler(args, load_ratings(args.path))
+
+if __name__ == '__main__':
+    main()

@@ -153,12 +153,13 @@ def main():
 
     ratings.set_defaults(handler=on_ratings)
 
-    if len(sys.argv) == 1:
-        parser.print_help()
-        exit()
-
     args = parser.parse_args()
-    args.handler(args, load_ratings(args.path))
+
+    if hasattr(args, 'handler'):
+        args.handler(args, load_ratings(args.path))
+    else:
+        parser.print_help()
+        exit(1)
 
 if __name__ == '__main__':
     main()

@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 from collections import namedtuple
-from datetime import datetime
-from itertools import count
-from matplotlib import pyplot as plot
-from types import SimpleNamespace as Namespace
+from datetime    import datetime
+from matplotlib  import pyplot as plot
+from types       import SimpleNamespace as Namespace
 import argparse
 import csv
+import itertools
 import sys
 import textwrap
 import translate
@@ -32,7 +32,7 @@ def load_ratings(filename: str, encoding: str ='iso-8859-1') -> Entries:
     with open(filename, 'r', encoding=encoding) as f:
         entries = list(csv.reader(f))
 
-        indexes = dict(zip(entries[0], count(0)))
+        indexes = dict(zip(entries[0], itertools.count(0)))
         assert all(key in entries[0] for key in ['Title', 'Your Rating', 'Release Date'])
 
         return [Entry(
@@ -61,8 +61,7 @@ def summary(entries : list[Entry], avg = False):
         print(f'{gt("Average rating")}: ', '%.2f / 10' % (sum(e.rating for e in entries) / len(entries)))
 
 def on_with_rating(args, entries : Entries):
-    entries = [entry for entry in entries if entry.rating in args.rating]
-    entries.sort()
+    entries = sorted([entry for entry in entries if entry.rating in args.rating])
     print_table(entries)
     summary(entries)
 
@@ -79,7 +78,7 @@ def on_with_title(args, entries : Entries):
 def on_ratings(args, entries : Entries):
     ratings     = ratings_occurance(entries)
     ratings_sum = sum(ratings)
-    for i, r in sorted(zip(count(1), ratings), key = lambda x: x[1], reverse = True):
+    for i, r in sorted(zip(itertools.count(1), ratings), key = lambda x: x[1], reverse = True):
         print(f'{i}:\t{r}\t%.1f%%' % (r / ratings_sum * 100))
 
 def on_plot(args, entries : Entries):
@@ -134,7 +133,9 @@ def main():
             """).strip())
 
     parser.add_argument('-p', '--path', help='Path to a ratings file (default: ratings.csv)', default='ratings.csv')
-    parser.add_argument('-P', '--pl', help='Set language to Polish', action='store_true')
+
+    langs = ', '.join(translate.languages())
+    parser.add_argument('-l', '--language', help=f'Set language. Available: ({langs})', type=str)
 
     subparsers = parser.add_subparsers()
 
@@ -148,17 +149,16 @@ def main():
     with_title.set_defaults(handler=on_with_title)
 
     ratings = subparsers.add_parser('ratings', help='Shows statistics about ratings', aliases='r')
+    ratings.set_defaults(handler=on_ratings)
 
     plot = subparsers.add_parser('plot', help='Plots ratings occurance', aliases='p')
     plot.add_argument('-o', '--output', type=str, help='Write plot to a file insetad of opening window')
     plot.set_defaults(handler=on_plot)
 
-    ratings.set_defaults(handler=on_ratings)
-
     args = parser.parse_args()
 
-    if args.pl:
-        translate.set_language('pl')
+    if args.language:
+        translate.set_language(args.language.lower())
 
     if hasattr(args, 'handler'):
         args.handler(args, load_ratings(args.path))

@@ -1,4 +1,5 @@
 import json
+import os.path
 
 __all__ = ['set_language', 'get']
 
@@ -12,7 +13,7 @@ def set_language(language: str):
 def get(message: str) -> str:
     return message if target_language == source_language else translations[message]
 
-with open('translation.json') as f:
+with open(f'{os.path.dirname(__file__)}/pl.json') as f:
     config = json.load(f)
     source_language = config['source']
     target_language = config['target']

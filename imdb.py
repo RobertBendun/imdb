@@ -8,6 +8,9 @@ import argparse
 import csv
 import sys
 import textwrap
+import translate
+
+gt = translate.get
 
 Colors = Namespace(
   Background        = '#3c3836',
@@ -51,11 +54,11 @@ def print_table(rows):
         print(title, spacing, rating, sep='')
 
 def summary(entries, avg = False):
-    print('\n================ SUMMARY ================')
-    print('Found: ', len(entries))
+    print('\n================ '+ gt('SUMMARY') + ' ================')
+    print(f'{gt("Found")}: ', len(entries))
 
     if avg:
-        print('Avarage rating: ', '%.2f / 10' % (sum(e.rating for e in entries) / len(entries)))
+        print(f'{gt("Average rating")}: ', '%.2f / 10' % (sum(e.rating for e in entries) / len(entries)))
 
 def on_with_rating(args, entries):
     entries = [entry for entry in entries if entry.rating in args.rating]
@@ -106,10 +109,10 @@ def on_plot(args, entries):
                   color=Colors.Bar_Value,
                   ha='center', va='bottom')
 
-    plot.title('IMDB Ratings')
-    plot.xlabel('Rating')
+    plot.title(gt('IMDB Ratings'))
+    plot.xlabel(gt('Rating'))
     plot.xticks(range(1, 11))
-    plot.ylabel('Rating count')
+    plot.ylabel(gt('Rating count'))
 
 
     height = 5 * (max(ratings) // 5 + 1)
@@ -133,6 +136,7 @@ def main():
             """).strip())
 
     parser.add_argument('-p', '--path', help='Path to a ratings file (default: ratings.csv)', default='ratings.csv')
+    parser.add_argument('-P', '--pl', help='Set language to Polish', action='store_true')
 
     subparsers = parser.add_subparsers()
 
@@ -154,6 +158,9 @@ def main():
     ratings.set_defaults(handler=on_ratings)
 
     args = parser.parse_args()
+
+    if args.pl:
+        translate.set_language('pl')
 
     if hasattr(args, 'handler'):
         args.handler(args, load_ratings(args.path))

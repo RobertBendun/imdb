@@ -1,0 +1,12 @@
+{
+	"source": "en",
+	"target": "pl",
+	"messages": {
+		"Average rating":  "Średnia ocena",
+		"Found": "Znaleziono",
+		"IMDB Ratings": "Oceny w serwisie IMDB",
+		"Rating": "Ocena",
+		"Rating count": "Liczba ocen",
+		"SUMMARY": "PODSUMOWANIE"
+	}
+}

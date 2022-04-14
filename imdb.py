@@ -25,9 +25,10 @@ Colors = Namespace(
   Foreground_Dimmer = '#bdae93',
 )
 
-Entry = namedtuple('Entry', 'title rating date')
+Entry   = namedtuple('Entry', 'title rating date')
+Entries = list[Entry]
 
-def load_ratings(filename, encoding='iso-8859-1'):
+def load_ratings(filename: str, encoding: str ='iso-8859-1') -> Entries:
     with open(filename, 'r', encoding=encoding) as f:
         entries = list(csv.reader(f))
 
@@ -40,33 +41,32 @@ def load_ratings(filename, encoding='iso-8859-1'):
                 date = datetime.strptime(entry[indexes['Release Date']], '%Y-%m-%d'))
                 for entry in entries[1:]]
 
-def ratings_occurance(entries):
+def ratings_occurance(entries : Entries) -> list[int]:
     ratings = [0] * 10
     for entry in entries:
         ratings[entry.rating - 1] += 1
     return ratings
 
-def print_table(rows):
+def print_table(rows : Entries):
     max_title_length = max(len(e.title) for e in rows)
 
     for title, rating, _ in rows:
-        spacing = " " * (max_title_length - len(title) + 2)
-        print(title, spacing, rating, sep='')
+        print(title.ljust(max_title_length+2), rating, sep='')
 
-def summary(entries, avg = False):
+def summary(entries : list[Entry], avg = False):
     print('\n================ '+ gt('SUMMARY') + ' ================')
     print(f'{gt("Found")}: ', len(entries))
 
     if avg:
         print(f'{gt("Average rating")}: ', '%.2f / 10' % (sum(e.rating for e in entries) / len(entries)))
 
-def on_with_rating(args, entries):
+def on_with_rating(args, entries : Entries):
     entries = [entry for entry in entries if entry.rating in args.rating]
     entries.sort()
     print_table(entries)
     summary(entries)
 
-def on_with_title(args, entries):
+def on_with_title(args, entries : Entries):
     needle  = args.title.lower()
     entries = [entry for entry in entries if needle in entry.title.lower()]
 
@@ -76,15 +76,13 @@ def on_with_title(args, entries):
     print_table(entries)
     summary(entries, avg=True)
 
-def on_ratings(args, entries):
+def on_ratings(args, entries : Entries):
     ratings     = ratings_occurance(entries)
     ratings_sum = sum(ratings)
-    ratings     = zip(count(1), ratings)
-    ratings     = sorted(ratings, key = lambda x: x[1], reverse = True)
-    for i, r in ratings:
+    for i, r in sorted(zip(count(1), ratings), key = lambda x: x[1], reverse = True):
         print(f'{i}:\t{r}\t%.1f%%' % (r / ratings_sum * 100))
 
-def on_plot(args, entries):
+def on_plot(args, entries : Entries):
     ratings = ratings_occurance(entries)
 
     plot.rcParams['axes.edgecolor']  = Colors.Foreground_Dimmer

@@ -83,7 +83,6 @@ def summary(entries : list[Entry], max_line_length: int):
         avg = sum(entry.rating for entry in entries) / len(entries)
         print(f'{gt("Average rating")}: {avg:.2f} / 10')
 
-
 def ratings(entries : Entries):
     "Prints ratings summary"
     occurs      = ratings_occurance(entries)
@@ -150,9 +149,7 @@ def genres(entries: Entries):
             occurances[genre] = 1
 
     genres_count = sum(occurances.values())
-
     max_genre_length = max(len(genre) for genre in occurances)
-
     for genre, occurs in sorted(occurances.items(), key=lambda x: x[1], reverse=True):
         print("%s%s  %s%%" % (
             genre.ljust(max_genre_length+2),
@@ -210,6 +207,7 @@ def print_help():
           Generates bar plot of ratings
 
         {terminal.bold("save-plot <path>")}
+        {terminal.bold("sp <path>")}
           Saves generated bar plot in <path>
 
         {terminal.bold("path <path>")}
@@ -232,8 +230,7 @@ def print_help():
 
 def main():
     global colors
-    rating   = []
-    title    = []
+    rating, title = [], []
 
     args = {
         "language": "en",
@@ -242,21 +239,23 @@ def main():
         "scheme":   "gruvbox"
     }
 
+    class Matched(Exception):
+        "Signals that given branch was matched"
+
     def require_argument(flag_name: str):
         if not sys.argv:
-            print(f"Parameter {flag_name} requires an argument", file=sys.stderr)
+            print(f"Parameter {terminal.bold(flag_name)} requires an argument", file=sys.stderr)
             sys.exit(1)
         return sys.argv.pop(0)
 
     def unary_argument(*names: list[str]):
         if command in names:
             args[names[0]] = require_argument(names[0])
-            return True
-        return False
+            raise Matched()
 
     def nary_argument(target: list, *names: list[str], mapping = None):
         if command not in names:
-            return False
+            return
 
         arg = require_argument(names[0])
         if mapping is not None:
@@ -266,20 +265,17 @@ def main():
             target.extend(arg)
         else:
             target.append(arg)
-        return True
-
+        raise Matched()
 
     def final_argument(final: typing.Callable, *names: list[str]):
         if command in names:
             args["final"] = final
-            return True
-        return False
+            raise Matched()
 
     def final_argument_unary(final: typing.Callable, *names: list[str]) -> bool:
         if command in names:
             args["final"] = final(require_argument(names[0]))
-            return True
-        return False
+            raise Matched()
 
     sys.argv.pop(0)
     if not sys.argv:
@@ -290,24 +286,24 @@ def main():
         if command == "help":
             print_help()
 
-        command_parsed_succesfully = (
-            unary_argument("language", "lang") or
-            unary_argument("path") or
-            unary_argument("scheme", "color-scheme", "colors") or
+        try:
+            unary_argument("language", "lang")
+            unary_argument("path")
+            unary_argument("scheme", "color-scheme", "colors")
 
-            nary_argument(rating, "with-rating", "wr", mapping=rating_spec) or
-            nary_argument(title,  "with-title",  "wt") or
+            nary_argument(rating, "with-rating", "wr", mapping=rating_spec)
+            nary_argument(title,  "with-title",  "wt")
 
-            final_argument(draw_plot, "p", "plot") or
-            final_argument(genres,    "g", "genres") or
-            final_argument(ratings,   "r", "ratings") or
+            final_argument(draw_plot, "p", "plot")
+            final_argument(genres,    "g", "genres")
+            final_argument(ratings,   "r", "ratings")
 
-            final_argument_unary(draw_plot_to, "save-plot")
-        )
+            final_argument_unary(draw_plot_to, "save-plot", "sp")
+        except Matched:
+            continue
 
-        if not command_parsed_succesfully:
-            print(f"Unrecognized command '{command}'", file=sys.stderr)
-            sys.exit(1)
+        print(f"Unrecognized command '{command}'", file=sys.stderr)
+        sys.exit(1)
 
     colors = colors[args["scheme"].lower()]
     translate.set_language(args["language"].lower())

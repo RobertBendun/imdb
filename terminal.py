@@ -1,3 +1,5 @@
+"Support for terminal ANSII escape sequences"
+
 import sys
 import textwrap
 
@@ -17,15 +19,15 @@ else:
 for prefix in ["", "bright_"]:
     for color in ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"]:
         exec(textwrap.dedent(f"""
-        def {prefix}{color}(s: str) -> str:
-            return {prefix.upper()}{color.upper()} + s + COLOR_RESET
+        def {prefix}{color}(string: str) -> str:
+            return {prefix.upper()}{color.upper()} + string + COLOR_RESET
         """.strip(" \n")))
 
-def bold(s: str):
-    return BOLD + s + COLOR_RESET
+def bold(string: str):
+    return BOLD + string + COLOR_RESET
 
-def underline(s: str):
-    return UNDERLINE + s + COLOR_RESET
+def underline(string: str):
+    return UNDERLINE + string + COLOR_RESET
 
-def reverse(s: str):
-    return REVERSE + s + COLOR_RESET
+def reverse(string: str):
+    return REVERSE + string + COLOR_RESET

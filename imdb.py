@@ -13,8 +13,9 @@ import os
 import sys
 import typing
 from   matplotlib  import pyplot # type: ignore
-import translate
+import terminal
 import textwrap
+import translate
 
 gt = translate.get
 
@@ -58,16 +59,24 @@ def ratings_occurance(entries : Entries) -> list[int]:
         occurance[entry.rating - 1] += 1
     return occurance
 
-def print_table(rows : Entries):
-    "Prints table of titles & ratings"
+def print_table(rows : Entries) -> int:
+    "Prints table of titles & ratings. Returns max line length"
     max_title_length = max(len(e.title) for e in rows)
 
+    max_line_length = 0
     for entry in rows:
-        print(entry.title.ljust(max_title_length+2), entry.rating, sep='')
+        line = entry.title.ljust(max_title_length+2) + str(entry.rating)
+        print(line)
+        max_line_length = max(max_line_length, len(line))
 
-def summary(entries : list[Entry]):
+    return max_line_length
+
+def summary(entries : list[Entry], max_line_length: int):
     "Prints summary of entries"
-    print('\n================ '+ gt('SUMMARY') + ' ================')
+    title = gt('SUMMARY')
+    length = max(max_line_length - len(title) - 2, 6)
+    left_length, right_length = length // 2, length // 2 + (length % 2)
+    print(f"\n{left_length * '='} {terminal.bold(title)} {right_length * '='}")
     print(f'{gt("Found")}: ', len(entries))
 
     if len(set(entry.rating for entry in entries)) != 1:
@@ -112,7 +121,6 @@ def mk_plot(entries : Entries):
     pyplot.xlabel(gt('Rating'))
     pyplot.xticks(range(1, 11))
     pyplot.ylabel(gt('Rating count'))
-
 
     height = 5 * (max(occurs) // 5 + 1)
     pyplot.yticks(range(0, height + 5, 5))
@@ -163,8 +171,7 @@ def filter_rating(rating: list[int], entries: Entries) -> Entries:
 
 def summarize(entries: Entries):
     "Prints summary"
-    print_table(entries)
-    summary(entries)
+    summary(entries, print_table(entries))
 
 def rating_spec(spec: str):
     "Parses rating specification"
@@ -181,44 +188,44 @@ def print_help():
     imdb.py queries
       where queries is one or more commands from the list below:
 
-        with-title <phrase>
-        wt <phrase>
+        {terminal.bold("with-title <phrase>")}
+        {terminal.bold("wt <phrase>")}
           Leaves only those titles that contains <phrase> in them
 
-        with-rating <rating>
-        wr <rating>
+        {terminal.bold("with-rating <rating>")}
+        {terminal.bold("wr <rating>")}
           Leaves only those titles that have rating rating
           Can be specified as range, for example 5-7, will leave only those with rating 5, 6, 7
 
-        genres
-        g
+        {terminal.bold("genres")}
+        {terminal.bold("g")}
           Prints genre statistics
 
-        ratings
-        r
+        {terminal.bold("ratings")}
+        {terminal.bold("r")}
           Prints ratings statistics
 
-        plot
-        p
+        {terminal.bold("plot")}
+        {terminal.bold("p")}
           Generates bar plot of ratings
 
-        save-plot <path>
+        {terminal.bold("save-plot <path>")}
           Saves generated bar plot in <path>
 
-        path <path>
+        {terminal.bold("path <path>")}
           Sets ratings file path (default: './ratings.csv')
 
-        language <language>
+        {terminal.bold("language <language>")}
           Sets language used in output.
           Available languages: {languages}
 
-        color-scheme <color-scheme>
-        colors <color-scheme>
-        scheme <color-scheme>
+        {terminal.bold("color-scheme <color-scheme>")}
+        {terminal.bold("colors <color-scheme>")}
+        {terminal.bold("scheme <color-scheme>")}
           Sets color scheme used in graphical output (default: gruvbox)
           Available color schemes: {schemes}
 
-        help
+        {terminal.bold("help")}
           Prints this message.
     """).strip())
     sys.exit(1)

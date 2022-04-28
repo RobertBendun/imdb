@@ -307,7 +307,14 @@ def main():
 
     colors = colors[args["scheme"].lower()]
     translate.set_language(args["language"].lower())
-    entries = load_ratings(args["path"])
+
+    try:
+        entries = load_ratings(args["path"])
+    except FileNotFoundError as file_not_found:
+        print(f"Cannot find file '{file_not_found.filename}'.", file=sys.stderr)
+        print(f"Try specifing file with 'imdb.py path /path/to/ratings/file.csv'")
+        sys.exit(1)
+
     if rating:
         entries = filter_rating(rating, entries)
 

@@ -12,6 +12,7 @@ To get your ratings data go to 'Your Ratings' and export.
 | `genres` | Shows all genres |
 | `with-rating <rating>` | Filter's all entries with given rating |
 | `with-title <phrase>` | Filter's all entries with given title |
+| `colors <color-scheme>` | Changes color scheme |
 
 ### Example plot
 ```

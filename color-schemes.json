@@ -1,0 +1,26 @@
+{
+	"gruvbox": {
+		"foreground": {
+			"normal": "#ebddb2",
+			"dimmer": "#bdae93"
+		},
+		"background": {
+			"normal": "#3c3836",
+			"dimmer": "#282828"
+		},
+		"bar": [ "#fb4934", "#fabd2f", "#b8bb26" ],
+		"bar_value": "#d5c4a1"
+	},
+	"flat": {
+		"foreground": {
+			"normal": "#ecf0f1",
+			"dimmer": "#bdc3c7"
+		},
+		"background": {
+			"normal": "#34495e",
+			"dimmer": "#2c3e50"
+		},
+		"bar": [ "#e74c3c", "#f1c40f", "#2ecc71" ],
+		"bar_value": "#ecf0f1"
+	}
+}

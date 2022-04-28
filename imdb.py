@@ -7,24 +7,16 @@ from dataclasses import dataclass
 import argparse
 import csv
 import itertools
+import json
+import os
 import sys
 import textwrap
 import translate
 
 gt = translate.get
 
-Colors = Namespace(
-  Background        = '#3c3836',
-  Background_Dimmer = '#282828',
-  Bar               = [
-    '#fb4934',
-    '#fabd2f',
-    '#b8bb26',
-  ],
-  Bar_Value         = '#d5c4a1',
-  Foreground        = '#ebddb2',
-  Foreground_Dimmer = '#bdae93',
-)
+with open(f'{os.path.dirname(__file__)}/color-schemes.json') as f:
+    Colors = json.load(f)
 
 @dataclass
 class Entry:
@@ -81,26 +73,26 @@ def ratings(entries : Entries):
 def mk_plot(entries : Entries):
     ratings = ratings_occurance(entries)
 
-    plot.rcParams['axes.edgecolor']  = Colors.Foreground_Dimmer
-    plot.rcParams['axes.labelcolor'] = Colors.Foreground
-    plot.rcParams['lines.color']     = Colors.Foreground
-    plot.rcParams['text.color']      = Colors.Foreground
-    plot.rcParams['xtick.color']     = Colors.Foreground
-    plot.rcParams['ytick.color']     = Colors.Foreground
+    plot.rcParams['axes.edgecolor']  = Colors["foreground"]["dimmer"]
+    plot.rcParams['axes.labelcolor'] = Colors["foreground"]["normal"]
+    plot.rcParams['lines.color']     = Colors["foreground"]["normal"]
+    plot.rcParams['text.color']      = Colors["foreground"]["normal"]
+    plot.rcParams['xtick.color']     = Colors["foreground"]["normal"]
+    plot.rcParams['ytick.color']     = Colors["foreground"]["normal"]
 
-    plot.figure(facecolor=Colors.Background)
-    plot.axes().set_facecolor(Colors.Background_Dimmer)
+    plot.figure(facecolor=Colors["background"]["normal"])
+    plot.axes().set_facecolor(Colors["background"]["dimmer"])
 
     rects = plot.bar(list(range(1, 11)), ratings, width=0.7)
     for i, rect in enumerate(rects):
-        rect.set_color(Colors.Bar[i * 3 // len(rects)])
+        rect.set_color(Colors["bar"][i * 3 // len(rects)])
 
         # Add value label to each bar
         height = rect.get_height()
         plot.text(rect.get_x() + rect.get_width() / 2,
                   1.01 * height,
                   '%d' % int(height),
-                  color=Colors.Bar_Value,
+                  color=Colors["bar_value"],
                   ha='center', va='bottom')
 
     plot.title(gt('IMDB Ratings'))
@@ -162,6 +154,7 @@ def rating_spec(spec: str):
     return int(spec)
 
 def main():
+    global Colors
     rating   = []
     title    = []
 
@@ -170,7 +163,8 @@ def main():
         "path":     "ratings.csv",
         "final":    summarize,
         "language": "en",
-        "path":     "ratings.csv"
+        "path":     "ratings.csv",
+        "scheme":   "gruvbox"
     }
 
     def require_argument(flag_name):
@@ -218,6 +212,7 @@ def main():
 
         if unary_argument("language", "lang") or \
            unary_argument("path") or \
+           unary_argument("scheme", "color-scheme", "colors") or \
            nary_argument(title,  "with-title",  "wt") or \
            nary_argument(rating, "with-rating", "wr", mapping=rating_spec) or \
            final_argument(ratings,      "r", "ratings") or \
@@ -230,6 +225,7 @@ def main():
             exit(1)
 
 
+    Colors = Colors[args["scheme"].lower()]
     translate.set_language(args["language"].lower())
     entries = load_ratings(args["path"])
     if rating:

@@ -16,6 +16,7 @@ from   matplotlib  import pyplot # type: ignore
 import terminal
 import textwrap
 import translate
+from copy import deepcopy
 
 gt = translate.get
 
@@ -231,6 +232,7 @@ def print_help():
 def main():
     global colors
     rating, title = [], []
+    
 
     args = {
         "language": "en",
@@ -243,10 +245,10 @@ def main():
         "Signals that given branch was matched"
 
     def require_argument(flag_name: str):
-        if not sys.argv:
+        if not argv_clone:
             print(f"Parameter {terminal.bold(flag_name)} requires an argument", file=sys.stderr)
             sys.exit(1)
-        return sys.argv.pop(0)
+        return argv_clone.pop(0)
 
     def unary_argument(*names: list[str]):
         if command in names:
@@ -281,8 +283,10 @@ def main():
     if not sys.argv:
         print_help()
 
-    while sys.argv:
-        command = sys.argv.pop(0)
+    argv_clone = deepcopy(sys.argv)
+
+    while argv_clone:
+        command = argv_clone.pop(0)
         if command == "help":
             print_help()
 

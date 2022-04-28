@@ -14,6 +14,7 @@ import sys
 import typing
 from   matplotlib  import pyplot # type: ignore
 import translate
+import textwrap
 
 gt = translate.get
 
@@ -172,6 +173,56 @@ def rating_spec(spec: str):
         return list(range(start, finish+1))
     return int(spec)
 
+def print_help():
+    languages = ', '.join(translate.available_languages)
+    schemes   = ', '.join(sorted(colors.keys()))
+
+    print(textwrap.dedent(f"""
+    imdb.py queries
+      where queries is one or more commands from the list below:
+
+        with-title <phrase>
+        wt <phrase>
+          Leaves only those titles that contains <phrase> in them
+
+        with-rating <rating>
+        wr <rating>
+          Leaves only those titles that have rating rating
+          Can be specified as range, for example 5-7, will leave only those with rating 5, 6, 7
+
+        genres
+        g
+          Prints genre statistics
+
+        ratings
+        r
+          Prints ratings statistics
+
+        plot
+        p
+          Generates bar plot of ratings
+
+        save-plot <path>
+          Saves generated bar plot in <path>
+
+        path <path>
+          Sets ratings file path (default: './ratings.csv')
+
+        language <language>
+          Sets language used in output.
+          Available languages: {languages}
+
+        color-scheme <color-scheme>
+        colors <color-scheme>
+        scheme <color-scheme>
+          Sets color scheme used in graphical output (default: gruvbox)
+          Available color schemes: {schemes}
+
+        help
+          Prints this message.
+    """).strip())
+    sys.exit(1)
+
 def main():
     global colors
     rating   = []
@@ -224,8 +275,13 @@ def main():
         return False
 
     sys.argv.pop(0)
+    if not sys.argv:
+        print_help()
+
     while sys.argv:
         command = sys.argv.pop(0)
+        if command == "help":
+            print_help()
 
         command_parsed_succesfully = (
             unary_argument("language", "lang") or

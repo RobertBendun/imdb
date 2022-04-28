@@ -16,7 +16,7 @@ from   matplotlib  import pyplot # type: ignore
 import terminal
 import textwrap
 import translate
-from copy import deepcopy
+from copy import copy
 
 gt = translate.get
 
@@ -279,11 +279,12 @@ def main():
             args["final"] = final(require_argument(names[0]))
             raise Matched()
 
-    sys.argv.pop(0)
-    if not sys.argv:
+    argv_clone = copy(sys.argv)
+    argv_clone.pop(0)
+    if not argv_clone:
         print_help()
 
-    argv_clone = deepcopy(sys.argv)
+    
 
     while argv_clone:
         command = argv_clone.pop(0)

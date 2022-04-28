@@ -3,6 +3,7 @@ from collections import namedtuple
 from datetime    import datetime
 from matplotlib  import pyplot as plot
 from types       import SimpleNamespace as Namespace
+from dataclasses import dataclass
 import argparse
 import csv
 import itertools
@@ -25,7 +26,16 @@ Colors = Namespace(
   Foreground_Dimmer = '#bdae93',
 )
 
-Entry   = namedtuple('Entry', 'title rating date')
+@dataclass
+class Entry:
+    title: str
+    rating: float
+    date: datetime
+    genres: list[str]
+
+    def __lt__(self, other):
+        return self.title < other.title
+
 Entries = list[Entry]
 
 def load_ratings(filename: str, encoding: str ='iso-8859-1') -> Entries:
@@ -33,12 +43,14 @@ def load_ratings(filename: str, encoding: str ='iso-8859-1') -> Entries:
         entries = list(csv.reader(f))
 
         indexes = dict(zip(entries[0], itertools.count(0)))
-        assert all(key in entries[0] for key in ['Title', 'Your Rating', 'Release Date'])
+        assert all(key in entries[0] for key in ['Title', 'Your Rating', 'Release Date', 'Genres'])
 
         return [Entry(
-                title = entry[indexes['Title']],
+                title  = entry[indexes['Title']],
                 rating = int(entry[indexes['Your Rating']]),
-                date = datetime.strptime(entry[indexes['Release Date']], '%Y-%m-%d'))
+                date   = datetime.strptime(entry[indexes['Release Date']], '%Y-%m-%d'),
+                genres = [genre.strip() for genre in entry[indexes['Genres']].split(',')]
+                )
                 for entry in entries[1:]]
 
 def ratings_occurance(entries : Entries) -> list[int]:
@@ -50,8 +62,8 @@ def ratings_occurance(entries : Entries) -> list[int]:
 def print_table(rows : Entries):
     max_title_length = max(len(e.title) for e in rows)
 
-    for title, rating, _ in rows:
-        print(title.ljust(max_title_length+2), rating, sep='')
+    for e in rows:
+        print(e.title.ljust(max_title_length+2), e.rating, sep='')
 
 def summary(entries : list[Entry], avg = False):
     print('\n================ '+ gt('SUMMARY') + ' ================')
@@ -121,6 +133,24 @@ def on_plot(args, entries : Entries):
     else:
         plot.show()
 
+def on_genres(args, entries: Entries):
+    occurances = {}
+    for genre in (genre for entry in entries for genre in entry.genres):
+        if genre in occurances:
+            occurances[genre] += 1
+        else:
+            occurances[genre] = 1
+
+    genres_count = sum(occurances.values())
+
+    max_genre_length = max(len(genre) for genre in occurances.keys())
+
+    for genre, occurances in sorted(occurances.items(), key=lambda x: x[1], reverse=True):
+        print("%s%s  %s%%" % (
+            genre.ljust(max_genre_length+2),
+            str(occurances).rjust(4),
+            ("%.2f" % (occurances / genres_count * 100,)).rjust(5)
+        ))
 
 def main():
     parser = argparse.ArgumentParser(
@@ -150,6 +180,9 @@ def main():
 
     ratings = subparsers.add_parser('ratings', help='Shows statistics about ratings', aliases='r')
     ratings.set_defaults(handler=on_ratings)
+
+    genres = subparsers.add_parser('genres', help='Shows all genres', aliases='g')
+    genres.set_defaults(handler=on_genres)
 
     plot = subparsers.add_parser('plot', help='Plots ratings occurance', aliases='p')
     plot.add_argument('-o', '--output', type=str, help='Write plot to a file insetad of opening window')

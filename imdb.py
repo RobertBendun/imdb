@@ -65,35 +65,20 @@ def print_table(rows : Entries):
     for e in rows:
         print(e.title.ljust(max_title_length+2), e.rating, sep='')
 
-def summary(entries : list[Entry], avg = False):
+def summary(entries : list[Entry]):
     print('\n================ '+ gt('SUMMARY') + ' ================')
     print(f'{gt("Found")}: ', len(entries))
 
-    if avg:
+    if len(set(e.rating for e in entries)) != 1:
         print(f'{gt("Average rating")}: ', '%.2f / 10' % (sum(e.rating for e in entries) / len(entries)))
 
-def on_with_rating(args, entries : Entries):
-    entries = sorted([entry for entry in entries if entry.rating in args.rating])
-    print_table(entries)
-    summary(entries)
-
-def on_with_title(args, entries : Entries):
-    needle  = args.title.lower()
-    entries = [entry for entry in entries if needle in entry.title.lower()]
-
-    if not args.rating_date:
-        entries.sort(key=lambda entry: entry.date)
-
-    print_table(entries)
-    summary(entries, avg=True)
-
-def on_ratings(args, entries : Entries):
+def ratings(entries : Entries):
     ratings     = ratings_occurance(entries)
     ratings_sum = sum(ratings)
     for i, r in sorted(zip(itertools.count(1), ratings), key = lambda x: x[1], reverse = True):
         print(f'{i}:\t{r}\t%.1f%%' % (r / ratings_sum * 100))
 
-def on_plot(args, entries : Entries):
+def mk_plot(entries : Entries):
     ratings = ratings_occurance(entries)
 
     plot.rcParams['axes.edgecolor']  = Colors.Foreground_Dimmer
@@ -128,12 +113,19 @@ def on_plot(args, entries : Entries):
     plot.yticks(range(0, height + 5, 5))
     plot.ylim(ymin=0, ymax=height)
 
-    if args.output:
-        plot.savefig(args.output)
-    else:
-        plot.show()
 
-def on_genres(args, entries: Entries):
+def draw_plot(entries: Entries):
+    mk_plot(entries)
+    plot.show()
+
+def draw_plot_to(path: str):
+    def draw(entries: Entries):
+        mk_plot(entries)
+        plot.savefig(path)
+    return draw
+
+
+def genres(entries: Entries):
     occurances = {}
     for genre in (genre for entry in entries for genre in entry.genres):
         if genre in occurances:
@@ -152,52 +144,105 @@ def on_genres(args, entries: Entries):
             ("%.2f" % (occurances / genres_count * 100,)).rjust(5)
         ))
 
+def filter_title(titles: list[str], entries: Entries) -> Entries:
+    needles = [title.lower() for title in titles]
+    return [entry for entry in entries if any(needle in entry.title.lower() for needle in needles)]
+
+def filter_rating(rating: list[int], entries: Entries) -> Entries:
+    return sorted([entry for entry in entries if entry.rating in rating])
+
+def summarize(entries: Entries):
+    print_table(entries)
+    summary(entries)
+
+def rating_spec(spec: str):
+    if '-' in spec:
+        start, finish = map(int, spec.split('-'))
+        return list(range(start, finish+1))
+    return int(spec)
+
 def main():
-    parser = argparse.ArgumentParser(
-            prog='imdb',
-            description=textwrap.dedent("""
-                This is a collection of useful tools for browsing user ratings
-                data collected by IMDB. To download source data, login to your IMDB account
-                and in 'Your ratings' click on Export link.
-                Exported CSV file is necessary for this application.
-            """).strip())
+    rating   = []
+    title    = []
 
-    parser.add_argument('-p', '--path', help='Path to a ratings file (default: ratings.csv)', default='ratings.csv')
+    args = {
+        "language": "en",
+        "path":     "ratings.csv",
+        "final":    summarize,
+        "language": "en",
+        "path":     "ratings.csv"
+    }
 
-    langs = ', '.join(translate.languages())
-    parser.add_argument('-l', '--language', help=f'Set language. Available: ({langs})', type=str)
+    def require_argument(flag_name):
+        if not sys.argv:
+            print(f"Parameter {flag_name} requires an argument", file=sys.stderr)
+            exit(1)
+        return sys.argv.pop(0)
 
-    subparsers = parser.add_subparsers()
+    def unary_argument(*names: list[str]):
+        if command in names:
+            args[names[0]] = require_argument(names[0])
+            return True
+        return False
 
-    with_rating = subparsers.add_parser('with-rating', help='Shows all entries with given rating', aliases=['wr'])
-    with_rating.add_argument('rating', type=int, nargs='+', help='Rating to search for')
-    with_rating.set_defaults(handler=on_with_rating)
+    def nary_argument(target: list, *names: list[str], mapping = None):
+        if command not in names:
+            return False
 
-    with_title = subparsers.add_parser('with-title', help='Shows all entries with given title', aliases=['wt'])
-    with_title.add_argument('title', help='Phrase to look for in titles')
-    with_title.add_argument('-r', '--rating-date', help='Sorts output by rating date', action='store_true')
-    with_title.set_defaults(handler=on_with_title)
+        arg = require_argument(names[0])
+        if mapping is not None:
+            arg = mapping(arg)
 
-    ratings = subparsers.add_parser('ratings', help='Shows statistics about ratings', aliases='r')
-    ratings.set_defaults(handler=on_ratings)
+        if isinstance(arg, list):
+            target.extend(arg)
+        else:
+            target.append(arg)
+        return True
 
-    genres = subparsers.add_parser('genres', help='Shows all genres', aliases='g')
-    genres.set_defaults(handler=on_genres)
 
-    plot = subparsers.add_parser('plot', help='Plots ratings occurance', aliases='p')
-    plot.add_argument('-o', '--output', type=str, help='Write plot to a file insetad of opening window')
-    plot.set_defaults(handler=on_plot)
+    def final_argument(f, *names: list[str]):
+        if command in names:
+            args["final"] = f
+            return True
+        return False
 
-    args = parser.parse_args()
+    def final_argument_unary(f, *names: list[str]) -> bool:
+        if command in names:
+            args["final"] = f(require_argument(names[0]))
+            return True
+        return False
 
-    if args.language:
-        translate.set_language(args.language.lower())
+    sys.argv.pop(0)
+    while sys.argv:
+        command = sys.argv.pop(0)
 
-    if hasattr(args, 'handler'):
-        args.handler(args, load_ratings(args.path))
-    else:
-        parser.print_help()
-        exit(1)
+        if unary_argument("language", "lang") or \
+           unary_argument("path") or \
+           nary_argument(title,  "with-title",  "wt") or \
+           nary_argument(rating, "with-rating", "wr", mapping=rating_spec) or \
+           final_argument(ratings,      "r", "ratings") or \
+           final_argument(genres,       "g", "genres") or \
+           final_argument(draw_plot,    "p", "plot") or \
+           final_argument_unary(draw_plot_to, "save-plot"):
+            continue
+        else:
+            print(f"Unrecognized command '{command}'", file=sys.stderr)
+            exit(1)
+
+
+    translate.set_language(args["language"].lower())
+    entries = load_ratings(args["path"])
+    if rating:
+        entries = filter_rating(rating, entries)
+
+    if title:
+        entries = filter_title(title, entries)
+
+    if not entries:
+        print("All entries has been filtered out")
+        return
+
+    args["final"](entries)
 
 if __name__ == '__main__':
     main()

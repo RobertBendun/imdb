@@ -5,16 +5,17 @@ To get your ratings data go to 'Your Ratings' and export.
 
 ## Capabilities
 
-| Command | Functionality |
+| Query | Functionality |
 | --- | --- |
-| `imdb.py plot` | Plots in a window ratings occurance |
-| `imdb.py ratings` | Shows statistics about ratings |
-| `imdb.py with-rating <rating>` | Shows all entries with given rating |
-| `imdb.py with-title <phrase>` | Shows all entries having `phrase` in the title |
+| `plot` | Plots in a window ratings occurance |
+| `ratings` | Shows statistics about ratings |
+| `genres` | Shows all genres |
+| `with-rating <rating>` | Filter's all entries with given rating |
+| `with-title <phrase>` | Filter's all entries with given title |
 
 ### Example plot
 ```
-$ imdb.py plot -o example.png
+$ imdb.py save-plot example.png
 ```
 ![picture of example plot](./example.png)
 

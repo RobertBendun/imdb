@@ -5,6 +5,7 @@ It's a versatile utility for IMDB data transformations.
 """
 
 import csv
+import collections
 from   dataclasses import dataclass
 from   datetime    import datetime
 import itertools
@@ -53,15 +54,6 @@ def load_ratings(filename: str, encoding: str ='iso-8859-1') -> Entries:
                 )
                 for entry in entries[1:]]
 
-T = typing.TypeVar('T')
-def occurance(entries: Entries, accessor: typing.Callable[[Entry], T]) -> dict[T, int]:
-    "Returns ratings occurance list"
-    occurance: dict[T, int] = {}
-    for entry in entries:
-        key = accessor(entry)
-        occurance[key] = occurance.get(key, 0) + 1
-    return occurance
-
 def print_table(rows : Entries) -> int:
     "Prints table of titles & ratings. Returns max line length"
     max_title_length = max(len(e.title) for e in rows)
@@ -88,7 +80,7 @@ def summary(entries : list[Entry], max_line_length: int):
 
 def ratings(entries : Entries):
     "Prints ratings summary"
-    occurs      = occurance(entries, lambda entry: entry.rating)
+    occurs = collections.Counter(entry.rating for entry in entries)
     ratings_sum = sum(occurs.values())
     for key in sorted(occurs.keys(), reverse=True):
         rating = occurs[key]
@@ -96,7 +88,7 @@ def ratings(entries : Entries):
 
 def mk_plot(entries : Entries):
     "Creates bar plot of ratings"
-    occurs = occurance(entries, lambda entry: entry.rating)
+    occurs = collections.Counter(entry.rating for entry in entries)
 
     pyplot.rcParams['axes.edgecolor']  = colors["foreground"]["dimmer"]
     pyplot.rcParams['axes.labelcolor'] = colors["foreground"]["normal"]
@@ -145,12 +137,7 @@ def draw_plot_to(path: str):
 
 def genres(entries: Entries):
     "Prints genres summary"
-    occurances : dict[str, int] = {}
-    for genre in (genre for entry in entries for genre in entry.genres):
-        if genre in occurances:
-            occurances[genre] += 1
-        else:
-            occurances[genre] = 1
+    occurances = collections.Counter(genre for entry in entries for genre in entry.genres)
 
     genres_count = sum(occurances.values())
     max_genre_length = max(len(genre) for genre in occurances)

@@ -13,16 +13,22 @@ import json
 import os
 import sys
 import typing
-from   matplotlib  import pyplot # type: ignore
 import terminal
 import textwrap
 import translate
 from copy import copy
+pyplot = None
 
 gt = translate.get
 
 with open(f'{os.path.dirname(__file__)}/color-schemes.json') as color_scheme:
     colors = json.load(color_scheme)
+
+def ensure_pyplot_is_imported():
+    global pyplot
+    if pyplot is None:
+        from   matplotlib  import pyplot as pyplot_ # type: ignore
+        pyplot = pyplot_
 
 @dataclass
 class Entry:
@@ -88,6 +94,7 @@ def ratings(entries : Entries):
 
 def mk_plot(entries : Entries):
     "Creates bar plot of ratings"
+    ensure_pyplot_is_imported()
     occurs = collections.Counter(entry.rating for entry in entries)
 
     pyplot.rcParams['axes.edgecolor']  = colors["foreground"]["dimmer"]
@@ -125,11 +132,13 @@ def mk_plot(entries : Entries):
 
 def draw_plot(entries: Entries):
     "Draws plot and renders it as window"
+    ensure_pyplot_is_imported()
     mk_plot(entries)
     pyplot.show()
 
 def draw_plot_to(path: str):
     "Draws plot to file"
+    ensure_pyplot_is_imported()
     def draw(entries: Entries):
         mk_plot(entries)
         pyplot.savefig(path)

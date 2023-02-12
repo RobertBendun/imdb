@@ -53,11 +53,13 @@ def load_ratings(filename: str, encoding: str ='iso-8859-1') -> Entries:
                 )
                 for entry in entries[1:]]
 
-def ratings_occurance(entries : Entries) -> list[int]:
+T = typing.TypeVar('T')
+def occurance(entries: Entries, accessor: typing.Callable[[Entry], T]) -> dict[T, int]:
     "Returns ratings occurance list"
-    occurance = [0] * 10
+    occurance: dict[T, int] = {}
     for entry in entries:
-        occurance[entry.rating - 1] += 1
+        key = accessor(entry)
+        occurance[key] = occurance.get(key, 0) + 1
     return occurance
 
 def print_table(rows : Entries) -> int:
@@ -86,14 +88,15 @@ def summary(entries : list[Entry], max_line_length: int):
 
 def ratings(entries : Entries):
     "Prints ratings summary"
-    occurs      = ratings_occurance(entries)
-    ratings_sum = sum(occurs)
-    for i, rating in sorted(zip(itertools.count(1), occurs), key = lambda x: x[1], reverse = True):
-        print(f'{i}:\t{rating}\t{rating / ratings_sum * 100:.1f}%')
+    occurs      = occurance(entries, lambda entry: entry.rating)
+    ratings_sum = sum(occurs.values())
+    for key in sorted(occurs.keys(), reverse=True):
+        rating = occurs[key]
+        print(f'{key}:\t{rating}\t{rating / ratings_sum * 100:.1f}%')
 
 def mk_plot(entries : Entries):
     "Creates bar plot of ratings"
-    occurs = ratings_occurance(entries)
+    occurs = occurance(entries, lambda entry: entry.rating)
 
     pyplot.rcParams['axes.edgecolor']  = colors["foreground"]["dimmer"]
     pyplot.rcParams['axes.labelcolor'] = colors["foreground"]["normal"]
@@ -105,7 +108,8 @@ def mk_plot(entries : Entries):
     pyplot.figure(facecolor=colors["background"]["normal"])
     pyplot.axes().set_facecolor(colors["background"]["dimmer"])
 
-    rects = pyplot.bar(list(range(1, 11)), occurs, width=0.7)
+    indicies = list(range(1, 11))
+    rects = pyplot.bar(indicies, [occurs[index] for index in indicies], width=0.7)
     for i, rect in enumerate(rects):
         rect.set_color(colors["bar"][i * 3 // len(rects)])
 
@@ -122,7 +126,7 @@ def mk_plot(entries : Entries):
     pyplot.xticks(range(1, 11))
     pyplot.ylabel(gt('Rating count'))
 
-    height = 5 * (max(occurs) // 5 + 1)
+    height = 5 * (max(occurs.values()) // 5 + 1)
     pyplot.yticks(range(0, height + 5, 5))
     pyplot.ylim(ymin=0, ymax=height)
 
@@ -138,7 +142,6 @@ def draw_plot_to(path: str):
         mk_plot(entries)
         pyplot.savefig(path)
     return draw
-
 
 def genres(entries: Entries):
     "Prints genres summary"
@@ -157,6 +160,14 @@ def genres(entries: Entries):
             str(occurs).rjust(4),
             ("%.2f" % (occurs / genres_count * 100,)).rjust(5)
         ))
+
+def years(entries: Entries):
+    "Prints how many ratings are for given years"
+    occurs = occurance(entries, lambda entry: entry.date.year)
+
+    for year in sorted(occurs.keys()):
+        percent = occurs[year] / len(entries) * 100
+        print(f"{year}: {occurs[year]} ({percent:.2f})")
 
 def filter_title(titles: list[str], entries: Entries) -> Entries:
     "Filters entries that contains one of given phrases"
@@ -232,7 +243,6 @@ def print_help():
 def main():
     global colors
     rating, title = [], []
-    
 
     args = {
         "language": "en",
@@ -284,7 +294,7 @@ def main():
     if not argv_clone:
         print_help()
 
-    
+
 
     while argv_clone:
         command = argv_clone.pop(0)
@@ -302,6 +312,7 @@ def main():
             final_argument(draw_plot, "p", "plot")
             final_argument(genres,    "g", "genres")
             final_argument(ratings,   "r", "ratings")
+            final_argument(years,     "y", "years")
 
             final_argument_unary(draw_plot_to, "save-plot", "sp")
         except Matched:

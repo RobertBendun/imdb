@@ -4,6 +4,7 @@ This module parses IMDB ratings data and produce summaries, statistics and plots
 It's a versatile utility for IMDB data transformations.
 """
 
+import pandas
 import csv
 import collections
 from   dataclasses import dataclass
@@ -159,11 +160,28 @@ def genres(entries: Entries):
 
 def years(entries: Entries):
     "Prints how many ratings are for given years"
-    occurs = occurance(entries, lambda entry: entry.date.year)
+    occurs = collections.Counter(entry.date.year for entry in entries)
 
     for year in sorted(occurs.keys()):
         percent = occurs[year] / len(entries) * 100
         print(f"{year}: {occurs[year]} ({percent:.2f})")
+
+def top(entries: Entries):
+    "Prints top movies (max rating) that I watched from given year"
+    years: dict[int, list[Entry]] = {}
+    for entry in entries:
+        years[entry.date.year] = years.get(entry.date.year, [])
+        years[entry.date.year].append(entry)
+
+    for year, xs in years.items():
+        xs.sort(key=lambda x: x.rating, reverse=True)
+        years[year] = [x for x in xs if x.rating == xs[0].rating]
+
+    for year in sorted(years.keys()):
+        print(f"{year} (max rating = {years[year][0].rating}):")
+        for x in years[year]:
+            print(f"  {x.title}")
+
 
 def filter_title(titles: list[str], entries: Entries) -> Entries:
     "Filters entries that contains one of given phrases"
@@ -309,6 +327,7 @@ def main():
             final_argument(genres,    "g", "genres")
             final_argument(ratings,   "r", "ratings")
             final_argument(years,     "y", "years")
+            final_argument(top,       "t", "top")
 
             final_argument_unary(draw_plot_to, "save-plot", "sp")
         except Matched:

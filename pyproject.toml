@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "imdb"
+version = "0.1.0"
+description = "Visualisations and stats of your IMDb ratings"
+authors = ["Robert Bendun <robert@bendun.cc>"]
+license = "GPL3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+matplotlib = "^3.7.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

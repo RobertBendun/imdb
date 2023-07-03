@@ -39,6 +39,7 @@ class Entry:
     rating: int
     date: datetime
     genres: list[str]
+    title_type: str
 
     def __lt__(self, other):
         return self.title < other.title
@@ -51,13 +52,14 @@ def load_ratings(filename: str, encoding: str ='iso-8859-1') -> Entries:
         entries = list(csv.reader(csv_file))
 
         indexes = dict(zip(entries[0], itertools.count(0)))
-        assert all(key in entries[0] for key in ['Title', 'Your Rating', 'Release Date', 'Genres'])
+        assert all(key in entries[0] for key in ['Title', 'Your Rating', 'Release Date', 'Genres', 'Title Type'])
 
         return [Entry(
                 title  = entry[indexes['Title']],
                 rating = int(entry[indexes['Your Rating']]),
                 date   = datetime.strptime(entry[indexes['Release Date']], '%Y-%m-%d'),
-                genres = [genre.strip() for genre in entry[indexes['Genres']].split(',')]
+                genres = [genre.strip() for genre in entry[indexes['Genres']].split(',')],
+                title_type = entry[indexes['Title Type']]
                 )
                 for entry in entries[1:]]
 
@@ -192,6 +194,12 @@ def filter_rating(rating: list[int], entries: Entries) -> Entries:
     "Filters entries that contains one of given ratings"
     return sorted([entry for entry in entries if entry.rating in rating])
 
+def filter_years(years: list[int], entries: Entries) -> Entries:
+    return sorted([entry for entry in entries if entry.date.year in years])
+
+def filter_out_title_types(tt: list[str], entries: Entries) -> Entries:
+    return sorted([entry for entry in entries if entry.title_type not in tt])
+
 def summarize(entries: Entries):
     "Prints summary"
     summary(entries, print_table(entries))
@@ -219,6 +227,15 @@ def print_help():
         {terminal.bold("wr <rating>")}
           Leaves only those titles that have rating rating
           Can be specified as range, for example 5-7, will leave only those with rating 5, 6, 7
+
+        {terminal.bold("with-year <year>")}
+        {terminal.bold("wy <year>")}
+          Leaves only those titles that have year `year`
+          Can be specified as range, for example 2010-2013, will leave only those with years 2010, 2011, 2012, 2013
+
+        {terminal.bold("without-type <type>")}
+        {terminal.bold("wty <type>")}
+                          TODO
 
         {terminal.bold("genres")}
         {terminal.bold("g")}
@@ -256,7 +273,7 @@ def print_help():
 
 def main():
     global colors
-    rating, title = [], []
+    rating, title, with_year, without_title_type = [], [], [], []
 
     args = {
         "language": "en",
@@ -309,7 +326,6 @@ def main():
         print_help()
 
 
-
     while argv_clone:
         command = argv_clone.pop(0)
         if command == "help":
@@ -321,7 +337,9 @@ def main():
             unary_argument("scheme", "color-scheme", "colors")
 
             nary_argument(rating, "with-rating", "wr", mapping=rating_spec)
+            nary_argument(with_year, "with-year",   "wy", mapping=rating_spec)
             nary_argument(title,  "with-title",  "wt")
+            nary_argument(without_title_type, "without-type", "wty") # This is awful
 
             final_argument(draw_plot, "p", "plot")
             final_argument(genres,    "g", "genres")
@@ -349,8 +367,16 @@ def main():
     if rating:
         entries = filter_rating(rating, entries)
 
+    if without_title_type:
+        entries = filter_out_title_types(without_title_type, entries)
+
+    if with_year:
+        entries = filter_years(with_year, entries)
+
     if title:
         entries = filter_title(title, entries)
+
+
 
     if not entries:
         print("All entries has been filtered out")

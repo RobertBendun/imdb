@@ -132,6 +132,25 @@ def mk_plot(entries : Entries):
     pyplot.yticks(range(0, height + 5, 5))
     pyplot.ylim(ymin=0, ymax=height)
 
+def draw_ascii_plot(entries: Entries):
+    occurs = collections.Counter(entry.rating for entry in entries)
+    max_count = max(occurs.values())
+    increment = max_count / 25
+    longest_label_length = 2 # len("10")
+
+    # https://alexwlchan.net/2018/ascii-bar-charts/
+    def draw_ascii_bar(label, count):
+        nonlocal increment, longest_label_length
+        bar_chunks, r = divmod(int(count * 8 // increment), 8)
+        bar = '█' * bar_chunks
+        if r > 0:
+            bar += chr(ord('█') + (8 - r))
+        bar = bar or  '▏'
+        print(f'{label.rjust(longest_label_length)} ▏ {count:#4d} {bar}')
+
+    for rating in range(1, 11):
+        draw_ascii_bar(str(rating), occurs[rating])
+
 
 def draw_plot(entries: Entries):
     "Draws plot and renders it as window"
@@ -341,11 +360,12 @@ def main():
             nary_argument(title,  "with-title",  "wt")
             nary_argument(without_title_type, "without-type", "wty") # This is awful
 
-            final_argument(draw_plot, "p", "plot")
-            final_argument(genres,    "g", "genres")
-            final_argument(ratings,   "r", "ratings")
-            final_argument(years,     "y", "years")
-            final_argument(top,       "t", "top")
+            final_argument(draw_ascii_plot, "ap", "ascii-plot")
+            final_argument(draw_plot,       "p", "plot")
+            final_argument(genres,          "g", "genres")
+            final_argument(ratings,         "r", "ratings")
+            final_argument(top,             "t", "top")
+            final_argument(years,           "y", "years")
 
             final_argument_unary(draw_plot_to, "save-plot", "sp")
         except Matched:
